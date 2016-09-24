@@ -19,27 +19,57 @@ resilint = Resilint.registered(
 )
 
 
-def self.attempt(msg)
-  puts "\e[33m#{msg}\e[0m"
+def self.print_coloured(colour, msgs)
+  coloured_msgs = msgs.map { |msg| "#{colour}#{msg}" }
+  puts coloured_msgs.join
 end
-def self.error(msg)
-  puts "  \e[31m#{msg}\e[0m"
+def self.attempt(*msgs)
+  print_coloured "\e[33m", msgs
 end
-def self.success(msg)
-  puts "  \e[32m#{msg}\e[0m"
+def self.error(*msgs)
+  print_coloured "\e[31m", msgs
+end
+def self.success(*msgs)
+  print_coloured "\e[32m", msgs
+end
+
+def self.pretty_inspect(primitive_obj)
+  hsh_colour     = "\e[39m"
+  sym_key_colour = "\e[96m"
+  num_colour     = "\e[94m"
+  str_sym_value  = "\e[93m"
+  no_colour      = "\e[0m"
+
+  case primitive_obj
+  when Fixnum
+    "#{num_colour}#{primitive_obj.inspect}#{no_colour}"
+  when String, Symbol
+    "#{str_sym_value}#{primitive_obj.inspect}#{no_colour}"
+  when Hash
+    pairs = primitive_obj.map { |key, value|
+      if key.kind_of? Symbol
+        pair = "#{sym_key_colour}#{key}:#{no_colour} "
+      else
+        pair = "#{pretty_inspect key} #{hsh_colour}=>#{no_colour} "
+      end
+      "#{pair}#{pretty_inspect value}"
+    }.join("#{hsh_colour},#{no_colour} ")
+    "#{hsh_colour}{ #{pairs}#{hsh_colour} }\e[0m"
+  else raise "Wat: #{primitive_obj.inspect}"
+  end
 end
 
 loop do
   attempt "Excavating"
   if found = resilint.excavate
-    success "Found gold at #{found}"
+    success "Found gold at ", pretty_inspect(found)
   else
     error "Failed to excavate, trying again"
     next
   end
 
   if found[:value] < 2
-    error "Not going to store, value of #{found[:value]} is too low"
+    error "Not going to store, value of ", pretty_inspect(found[:value]), " is too low"
     next
   end
 
