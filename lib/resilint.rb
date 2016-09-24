@@ -3,6 +3,8 @@ require 'json'
 
 
 class Resilint
+  Timeout = Class.new RuntimeError
+
   def self.registered(opts)
     new(opts)
   end
@@ -18,30 +20,38 @@ class Resilint
   end
 
   def excavate
-    json = RestClient::Request.execute(
-      method:  :post,
-      url:     "#{base_url}/v1/excavate",
-      timeout: timeout,
-    )
-    # => {"bucketId"=>"499728b5-c311-4c59-ac3d-132686dfa036", "gold"=>{"units"=>4}}
-    body = JSON.parse(json)
-    body.fetch 'bucketId'
-  rescue RestClient::Exceptions::ReadTimeout
+    # { bucketId: "499728b5-c311", gold: {units: 4} }
+    request("excavate").fetch('bucketId')
+  rescue Timeout
   end
 
   def store(bucket_id)
-    body = RestClient.post "#{base_url}/v1/store?userId=#{user_id}&bucketId=#{bucket_id}", {}
-    body == 'true' or raise(body)
+    body = request 'store', parse: false, params: {userId: user_id, bucketId: bucket_id}
+    true # body == 'true' or raise(body)
   end
 
   private
 
   def register
-    json = RestClient.post "#{base_url}/v1/register?userName=#{user_name}", {}
-    # => "{\"user\":\"e707b38c-1d53-4be2-a4c7-dd3fc9fc77b8\",\"name\":\"JoshCheek\"}"
-    body = JSON.parse(json)
+    # => { user: "e707b38c-1d53", name: "JoshCheek" }
+    body    = request 'register', params: {userName: user_name}
     user_id = body.fetch 'user'
     post_registration.call(user_id)
     user_id
+  end
+
+  def request(path, params:{}, timeout: self.timeout, parse: true)
+    body = RestClient::Request.execute(
+      method:  :post,
+      url:     "#{base_url}/v1/#{path}?#{to_query params}",
+      timeout: timeout,
+    )
+    parse ? JSON.parse(body) : body
+  rescue RestClient::Exceptions::ReadTimeout
+    raise Timeout, "after #{timeout}s"
+  end
+
+  def to_query(params)
+    params.map { |k, v| "#{k}=#{v}" }.join("&")
   end
 end
