@@ -31,10 +31,13 @@ RSpec.describe 'Resilint' do
   end
 
   def http_timeout!(seconds)
+    timeout_classes = [
+      RestClient::Exceptions::ReadTimeout,
+      RestClient::Exceptions::OpenTimeout,
+    ]
     expect(RestClient::Request).to receive(:execute) { |args|
       expect(args.fetch :timeout).to eq seconds
-      raise RestClient::Exceptions::ReadTimeout,
-            "Timed out reading data from server"
+      raise timeout_classes.sample, "Timed out reading data from server"
     }
   end
 

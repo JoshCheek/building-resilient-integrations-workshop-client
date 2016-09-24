@@ -48,7 +48,7 @@ class Resilint
       timeout: timeout,
     )
     parse ? JSON.parse(body) : body
-  rescue RestClient::Exceptions::ReadTimeout
+  rescue RestClient::RequestTimeout
     raise Timeout, "after #{timeout}s"
   end
 
