@@ -11,6 +11,7 @@ function Resilint(options) {
     baseUrl:          options.baseUrl,
     userName:         options.userName,
     userId:           options.userId,
+    timeout:          options.timeout,
     postRegistration: options.postRegistration,
     https:            https,
     agent:            agent,
@@ -27,6 +28,8 @@ function Resilint(options) {
   return resilint
 
   function excavate({success, failure, ensure}) {
+    let error = null
+
     const requestOptions = {
       agent:    resilint.agent,
       hostname: resilint.baseUrl,
@@ -37,13 +40,17 @@ function Resilint(options) {
         'Content-Length': '0'
       },
     }
-    const errorCb = function(err) {
-      failure(err)
+    const errorCb = function(e) {
+      if(error) return
+      error = e
+      failure(e)
       ensure()
     }
     const timeoutCb = function() {
-      console.log(`timeout`)
+      errorCb(new Error(`Timeout after ${resilint.timeout}ms`))
     }
+    // Uhm, where does this go?
+    // something.setTimeout(resilint.timeout, timeoutCb)
 
     const requestCb = function(res) {
       if(res.statusCode != 200) {
@@ -51,13 +58,9 @@ function Resilint(options) {
         return
       }
       let body = ""
-      let error = null
       res.setEncoding('utf8')
       res.on('data', (chunk) => body += chunk)
-      res.on('error', (err) => {
-        error = err
-        errorCb(err)
-      })
+      res.on('error', errorCb)
       res.on('end', () => {
         if(error) return
         const parsed   = JSON.parse(body)
@@ -71,9 +74,7 @@ function Resilint(options) {
     }
 
     const req = https.request(requestOptions, requestCb)
-    // console.dir(req)
     req.on('error', errorCb)
-    // req.setTimeout(1000, timeoutCb)
     req.end()
   }
 }
@@ -107,6 +108,6 @@ function requestUserId(resilint, cb) {
 
   const req = https.request(requestOptions, requestCb)
   req.on('error', errorCb)
-  // req.setTimeout(1000, timeoutCb)
+  // req.setTimeout(resilint.timeout, timeoutCb)
   req.end()
 }

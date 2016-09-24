@@ -104,7 +104,11 @@ describe('Resilint', function() {
       response.end()
 
       const request = sinon.stub(https, 'request')
-      request.callsArgWith(1, response).returns(new PassThrough())
+      request.callsArgWith(1, response).returns({
+        on: function() {},
+        end: function(){},
+        setTimeout: function() { },
+      })
 
       clientFor({baseUrl: 'custom-base-url'}).excavate({
         success: function(bucketId, type, units, value) {},
@@ -179,15 +183,56 @@ describe('Resilint', function() {
       })
 
       // failed due to some other reason gets handed to the errorCb
-      specify('when failed from a stream error')
-        // request.on = function(type, cb) {
-        //   if(type === 'error')
-        //     cb(404, {}, 'errz')
-        // }
+      specify('when failed from a stream error', function(done) {
+        sinon.stub(https, 'request').returns({
+          on: function(type, cb) {
+          if(type === 'error')
+            cb(new Error('some failure'))
+          },
+          end: function(){},
+          setTimeout: function() {},
+        })
+
+        let failureCalled = false
+        client().excavate({
+          success: function()    { throw("Should not have failed!") },
+          failure: function(err) {
+            failureCalled = true
+            assert.equal('some failure', err.message)
+          },
+          ensure:  function() {
+            assert.equal(true, failureCalled)
+            done()
+          },
+        })
+      })
 
       // timeout calls the timeoutCb
-      specify('when failed from a timeout')
+      xspecify('when failed from a timeout', function(done) {
+        const expectedTimeout = 1223
 
+        sinon.stub(https, 'request').returns({
+          on: function() {},
+          end: function(){},
+          setTimeout: function(timeout, cb) {
+            assert.equal(expectedTimeout, timeout)
+            cb()
+          },
+        })
+
+        let failureCalled = false
+        clientFor({timeout: expectedTimeout}).excavate({
+          success: function()    { throw("Should not have failed!") },
+          failure: function(err) {
+            failureCalled = true
+            assert.equal(`timeout after ${expectedTimeout}ms`, err.message)
+          },
+          ensure:  function() {
+            assert.equal(true, failureCalled)
+            // done()
+          },
+        })
+      })
     })
   })
 
