@@ -31,7 +31,7 @@ const storeOptions = {
     const stats   = { seconds: seconds, stored: stored, goldPerSec: rate }
     console.log("Store success", stats)
   },
-  failure: function(bucketId, value) {
+  failure: function(err, bucketId, value) {
     resilient.store(bucketId, value, storeOptions)
     console.log("Store failed, trying again")
   },

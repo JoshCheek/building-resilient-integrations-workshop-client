@@ -16,6 +16,7 @@ function Resilint(options) {
     https:            https,
     agent:            agent,
     excavate:         excavate,
+    store:            store,
   }
 
   if(!resilint.userId)
@@ -40,6 +41,18 @@ function Resilint(options) {
     function errorCb(error) {
       failure(error)
       ensure()
+    }
+  }
+
+  function store(bucketId, units, {success, failure, ensure}) {
+    request(`/v1/store?userId=${resilint.userId}&bucketId=${bucketId}`, successCb, errorCb)
+    function successCb(body) {
+      success(bucketId, units)
+      ensure(bucketId, units)
+    }
+    function errorCb(err) {
+      failure(err, bucketId, units)
+      ensure(bucketId, units)
     }
   }
 

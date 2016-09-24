@@ -238,10 +238,97 @@ describe('Resilint', function() {
   })
 
   describe('storing', function() {
-    it('posts to the store endpoint with the provided bucket id')
-    it('times out after the specified number of seconds, returning nil')
-    it('invokes the success callback after a successful excavation, with the bucket id and value')
-    it('invokes the failure callback after a failed excavation, with the bucket id and value')
-    it('invokes the ensure callabck regardless of success or failure, with the bucket id and value')
+    it('posts to the store endpoint with the provided bucket id', function(done) {
+      const response = new PassThrough()
+      response.statusCode = 200
+      response.write('true') // this is what it returns
+      response.end()
+
+      const request = sinon.stub(https, 'request')
+      request.callsArgWith(1, response).returns({
+        on:         function() {},
+        end:        function() {},
+        setTimeout: function() {},
+      })
+
+      clientFor({userId: "uid", baseUrl: 'custom-base-url'}).store('bid', 222, {
+        success: function(bucketId, value) {},
+        failure: function(err, bucketId, value) {},
+        ensure:  function(bucketId, value) {
+          const options = request.getCall(0).args[0]
+          assert.equal('POST',            options.method)
+          assert.equal('custom-base-url', options.hostname)
+          assert.equal(`/v1/store?userId=uid&bucketId=bid`, options.path)
+          done()
+        },
+      })
+    })
+
+    xit('times out after the specified number of seconds, calling the failure and esnure callbacks')
+
+    it('invokes the success and ensure callbacks after a successful excavation', function(done) {
+      const response = new PassThrough()
+      response.statusCode = 200
+      response.write('true') // this is what it returns
+      response.end()
+
+      const request = sinon.stub(https, 'request')
+      request.callsArgWith(1, response).returns({
+        on:         function() {},
+        end:        function() {},
+        setTimeout: function() {},
+      })
+
+      let successCalled = false
+      client().store('bid', 222, {
+        success: function(bucketId, value) {
+          successCalled = true
+          assert.equal('bid', bucketId)
+          assert.equal(222, value)
+        },
+        failure: function(err, bucketId, value) {
+          throw("Err should not have been called!")
+        },
+        ensure:  function(bucketId, value) {
+          assert.equal(true,  successCalled)
+          assert.equal('bid', bucketId)
+          assert.equal(222,   value)
+          done()
+        },
+      })
+    })
+
+    it('invokes the failure callback and ensure after a failed excavation', function(done) {
+      const response = new PassThrough()
+      response.statusCode = 500
+      response.statusMessage = 'Internal Server Error'
+      response.end()
+
+      const request = sinon.stub(https, 'request')
+      request.callsArgWith(1, response).returns({
+        on:         function() {},
+        end:        function() {},
+        setTimeout: function() {},
+      })
+
+      let failureCalled = false
+      client().store('bktid', 132, {
+        success: function(bucketId, value) {
+          throw("Err should not have been called!")
+        },
+        failure: function(err, bucketId, value) {
+          failureCalled = true
+          assert.equal('Internal Server Error', err.message)
+          assert.equal('bktid', bucketId)
+          assert.equal(132, value)
+        },
+        ensure: function(bucketId, value) {
+          assert.equal(true,    failureCalled)
+          assert.equal('bktid', bucketId)
+          assert.equal(132,     value)
+          done()
+        },
+      })
+    })
   })
 })
