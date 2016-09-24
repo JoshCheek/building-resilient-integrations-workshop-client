@@ -14,6 +14,9 @@ describe('Resilint', function() {
     }
 	})
 
+  function client() {
+    return clientFor({})
+  }
 
   function clientFor(opts) {
     const mergedOpts = {
@@ -94,8 +97,45 @@ describe('Resilint', function() {
   })
 
   describe('excavate (dig for gold)', function() {
-    it('posts to the excavate endpoint')
-    it('times out after the specified number of seconds, returning nil')
+    it('posts to the excavate endpoint', function(done) {
+      const expectedBucketId = 'expected-bucket-id'
+      const expectedType     = 'gold'
+      const expectedUnits    = 3
+      const expectedValue    = 3
+
+      const response = new PassThrough()
+      response.write(JSON.stringify({
+        bucketId: expectedBucketId,
+        [expectedType]: {units: expectedUnits}
+      }))
+      response.end()
+
+      const request  = sinon.stub(https, 'request')
+      request.callsArgWith(1, response).returns(new PassThrough())
+
+      let successArgs = []
+
+      clientFor({baseUrl: 'custom-base-url'}).excavate({
+        success: function(bucketId, type, units, value) {
+          successArgs = [bucketId, type, units, value]
+        },
+        failure: function(bucketId, type, units, value) {
+          throw("Should not have failed!")
+        },
+        ensure: function(bucketId, type, units, value) {
+          const expectedArgs = [expectedBucketId, expectedType, expectedUnits, expectedValue]
+          assert.deepEqual(successArgs, expectedArgs)
+          assert.deepEqual([bucketId, type, units, value], expectedArgs)
+          const options = request.getCall(0).args[0]
+          assert.equal('POST',            options.method)
+          assert.equal('custom-base-url', options.hostname)
+          assert.equal("/v1/excavate",    options.path)
+          done()
+        },
+      })
+    })
+
+    it('times out after the specified number of seconds, invoking the failure and ensure callbacks')
     it('invokes the success callback after a successful excavation, with the bucket id, type, units, and normalized vlaue')
     it('invokes the failure callback after a failed excavation')
     it('invokes the ensure callabck regardless of success or failure')
