@@ -32,4 +32,9 @@ class Resilint
     body = JSON.parse(json)
     body.fetch 'bucketId'
   end
+
+  def store(bucket_id)
+    body = RestClient.post "#{base_url}/v1/store?userId=#{user_id}&bucketId=#{bucket_id}", {}
+    body == 'true'
+  end
 end

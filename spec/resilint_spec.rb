@@ -2,11 +2,14 @@ require 'resilint'
 require 'webmock/rspec'
 
 RSpec.describe 'Resilint' do
-  let(:base_url) { 'http://localhost:1234/test-base-url' }
+  let(:base_url)  { 'http://localhost:1234/test-base-url' }
+  let(:user_id)   { 'test-user-id' }
+  let(:client)    { client_for({}) }
+
   def client_for(**options)
     options.key?(:base_url)  or options[:base_url]  = base_url
     options.key?(:user_name) or options[:user_name] = 'test-username'
-    options.key?(:user_id)   or options[:user_id]   = 'test-user-id'
+    options.key?(:user_id)   or options[:user_id]   = user_id
     Resilint.registered(**options)
   end
 
@@ -15,9 +18,14 @@ RSpec.describe 'Resilint' do
       .to_return(status: 200, body: "{\"user\":\"#{returned_user_id}\",\"name\":\"#{user_name}\"}")
   end
 
-  def stub_excavation!
+  def stub_excavation!(bucket_id)
     stub_request(:post, "#{base_url}/v1/excavate")
-      .to_return(status: 200, body: "{\"bucketId\":\"#{returned_bucket_id}\",\"gold\":{\"units\":4}}")
+      .to_return(status: 200, body: "{\"bucketId\":\"#{bucket_id}\",\"gold\":{\"units\":4}}")
+  end
+
+  def stub_storing!(bucket_id)
+    stub_request(:post, "#{base_url}/v1/store?userId=#{user_id}&bucketId=#{bucket_id}")
+      .to_return(status: 200, body: "true")
   end
 
   it 'uses the provided base_url' do
@@ -58,14 +66,19 @@ RSpec.describe 'Resilint' do
 
   describe 'excavate (dig for gold)' do
     let(:returned_bucket_id) { 'test-bucket-id' }
-    let(:client)             { client_for({}) }
 
-    it 'hits the excavate endpoint and returns the bucket id' do
-      stub_excavation!
+    it 'posts to the excavate endpoint and returns the bucket id' do
+      stub_excavation! returned_bucket_id
       expect(client.excavate).to eq returned_bucket_id
     end
+  end
 
-    # => {"bucketId"=>"499728b5-c311-4c59-ac3d-132686dfa036", "gold"=>{"units"=>4}}
-    # [5] pry(main)> JSON.parse(RestClient.post 'http://resilient-integration-workshop.herokuapp.com/v1/excavate', {})
+  describe 'storing' do
+    let(:bucket_id) { "buckets-of-fun" }
+
+    it 'posts to the store endpoint and returns true if the endpoint indicates it was stored' do
+      stub_storing! bucket_id
+      expect(client.store bucket_id).to eq true
+    end
   end
 end
