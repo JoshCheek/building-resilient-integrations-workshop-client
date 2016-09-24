@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
-const Resilint = require('../src/resilint')
-const fs        = require('fs')
-const dataFile  = "./data"
-let   userId    = null
+const Resilint           = require('../src/resilint')
+const fs                 = require('fs')
+const dataFile           = "./data2"
+const concurrentRequests = 30
+let   userId             = null
 
 if (fs.existsSync(dataFile))
   userId = fs.readFileSync(dataFile, 'utf8')
 
 const resilint = Resilint({
-  baseUrl:          'https://resilient-integration-workshop.herokuapp.com',
+  baseUrl:          'resilient-integration-workshop.herokuapp.com',
   userName:         'JoshCheek',
   userId:           userId,
   timeout:          1,
@@ -18,10 +19,9 @@ const resilint = Resilint({
   },
 })
 
-const startTime          = new Date()
-const concurrentRequests = 10
-let   stored             = 0
-let   found              = 0
+const startTime = new Date()
+let   stored    = 0
+let   found     = 0
 
 const storeOptions = {
   success: function(bucketId, value) {
@@ -32,7 +32,7 @@ const storeOptions = {
     console.log("Store success", stats)
   },
   failure: function(err, bucketId, value) {
-    resilient.store(bucketId, value, storeOptions)
+    resilint.store(bucketId, value, storeOptions)
     console.log("Store failed, trying again")
   },
   ensure: function(bucketId, value) {
@@ -42,7 +42,7 @@ const storeOptions = {
 const excavateOptions = {
   success: function({bucketId, type, units, value}) {
     if (1 <= value) {
-      resilient.store(bucketId, value, storeOptions)
+      resilint.store(bucketId, value, storeOptions)
       console.log(`Excavate success storing ${value}`)
     } else {
       console.log(`Excavate success NOT storing ${value}`)
@@ -52,9 +52,9 @@ const excavateOptions = {
     console.log("Excavate fail")
   },
   ensure: function() {
-    resilient.excavate(excavateOptions)
+    resilint.excavate(excavateOptions)
   },
 }
 
 for(let i = 0; i < concurrentRequests; ++i)
-  resilient.excavate(excavateOptions)
+  resilint.excavate(excavateOptions)

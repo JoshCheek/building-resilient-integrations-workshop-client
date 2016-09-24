@@ -112,8 +112,8 @@ describe('Resilint', function() {
       })
 
       clientFor({baseUrl: 'custom-base-url'}).excavate({
-        success: function(bucketId, type, units, value) {},
-        failure: function(err) {},
+        success: function() {},
+        failure: function() {},
         ensure:  function() {
           const options = request.getCall(0).args[0]
           assert.equal('POST',            options.method)
@@ -144,7 +144,7 @@ describe('Resilint', function() {
 
         let successInvoked = false
         client().excavate({
-          success: function(bucketId, type, units, value) {
+          success: function({bucketId, type, units, value}) {
             successInvoked = true
             assert.deepEqual(
               [bucketId, type, units, value],
@@ -156,6 +156,23 @@ describe('Resilint', function() {
             assert.equal(true, successInvoked)
             done()
           },
+        })
+      })
+
+      describe('value', function() {
+        specify('0 for dirt', function() {
+          const normalized = client().normalizeExcavation({bucketId: 'a', dirt: {units: 4}})
+          assert.equal('a',    normalized.bucketId)
+          assert.equal('dirt', normalized.type)
+          assert.equal(4,      normalized.units)
+          assert.equal(0,      normalized.value)
+        })
+        specify('the value of gold, for gold', function() {
+          const normalized = client().normalizeExcavation({bucketId: 'b', gold: {units: 3}})
+          assert.equal('b',    normalized.bucketId)
+          assert.equal('gold', normalized.type)
+          assert.equal(3,      normalized.units)
+          assert.equal(3,      normalized.value)
         })
       })
     })

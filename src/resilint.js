@@ -8,15 +8,16 @@ function Resilint(options) {
   const agent = new https.Agent({keepAlive: true})
 
   const resilint = {
-    baseUrl:          options.baseUrl,
-    userName:         options.userName,
-    userId:           options.userId,
-    timeout:          options.timeout,
-    postRegistration: options.postRegistration,
-    https:            https,
-    agent:            agent,
-    excavate:         excavate,
-    store:            store,
+    baseUrl:             options.baseUrl,
+    userName:            options.userName,
+    userId:              options.userId,
+    timeout:             options.timeout,
+    postRegistration:    options.postRegistration,
+    https:               https,
+    agent:               agent,
+    excavate:            excavate,
+    store:               store,
+    normalizeExcavation: normalizeExcavation,
   }
 
   if(!resilint.userId)
@@ -30,18 +31,23 @@ function Resilint(options) {
   function excavate({success, failure, ensure}) {
     request('/v1/excavate', successCb, errorCb)
     function successCb(body) {
-      const parsed   = JSON.parse(body)
-      const bucketId = parsed.bucketId
-      const type     = "gold" in parsed ? "gold" : "dirt"
-      const units    = parsed[type].units
-      const value    = units // FIXME: should be zero for dirt
-      success(bucketId, type, units, value)
+      const parsed = JSON.parse(body)
+      success(normalizeExcavation(parsed))
       ensure()
     }
     function errorCb(error) {
       failure(error)
       ensure()
     }
+  }
+
+  function normalizeExcavation(parsed) {
+    const bucketId = parsed.bucketId
+    const type     = "gold" in parsed ? "gold" : "dirt"
+    const units    = parsed[type].units
+    let   value    = 0
+    if(type === 'gold') value = units
+    return {bucketId, type, units, value}
   }
 
   function store(bucketId, units, {success, failure, ensure}) {
