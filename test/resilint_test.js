@@ -4,9 +4,32 @@ const assert   = require('chai').assert;
 const Resilint = require('../src/resilint.js')
 
 describe('Resilint', function() {
-  it('uses the provided baseUrl')
-  it('remembers the provided userName')
-  it('remembers the provided userId')
+  function clientFor(opts) {
+    const mergedOpts = {
+      baseUrl:          'https://example.com/test-base-url',
+      userName:         'test-user-name',
+      userId:           'test-user-id',
+      timeout:          1000,
+      postRegistration: function() {},
+    }
+    Object.assign(mergedOpts, opts)
+    return Resilint(mergedOpts)
+  }
+
+  it('uses the provided baseUrl', function() {
+    const url = 'https://example.com/custom-test-url'
+    assert.equal(clientFor({baseUrl: url}).baseUrl, url)
+  })
+
+  it('remembers the provided userName', function() {
+    const name = 'custom-username'
+    assert.equal(clientFor({userName: name}).userName, name)
+  })
+
+  it('remembers the provided userId', function() {
+    const id = 'custom-id'
+    assert.equal(clientFor({userId: id}).userId, id)
+  })
 
   describe('registration', function() {
     it('registers the userName and invokes the callback when no userId was provided')
