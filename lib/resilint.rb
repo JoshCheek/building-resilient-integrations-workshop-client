@@ -3,7 +3,7 @@ require 'json'
 
 
 class Resilint
-  Timeout = Class.new RuntimeError
+  RequestFailed = Class.new RuntimeError
 
   def self.registered(opts)
     new(opts)
@@ -22,13 +22,13 @@ class Resilint
   def excavate
     # { bucketId: "499728b5-c311", gold: {units: 4} }
     request("excavate").fetch('bucketId')
-  rescue Timeout
+  rescue RequestFailed
   end
 
   def store(bucket_id)
     body = request 'store', parse: false, params: {userId: user_id, bucketId: bucket_id}
     body == 'true' or raise NotImplementedError, "Body: #{body.to_s.inspect}"
-  rescue Timeout
+  rescue RequestFailed
   end
 
   private
@@ -48,8 +48,8 @@ class Resilint
       timeout: timeout,
     )
     parse ? JSON.parse(body) : body
-  rescue RestClient::RequestTimeout
-    raise Timeout, "after #{timeout}s"
+  rescue RestClient::RequestFailed
+    raise RequestFailed, "after #{timeout}s"
   end
 
   def to_query(params)

@@ -41,6 +41,10 @@ RSpec.describe 'Resilint' do
     }
   end
 
+  def stub_status_code!(code, body:'')
+    stub_request(:post, //).to_return(status: code, body: body)
+  end
+
   it 'uses the provided base_url' do
     r = client_for(base_url: 'http://example.com/base-url')
     expect(r.base_url).to eq 'http://example.com/base-url'
@@ -89,6 +93,15 @@ RSpec.describe 'Resilint' do
       http_timeout! 123
       expect(client_for(timeout: 123).excavate).to eq nil
     end
+
+
+    it 'returns nil if the request fails' do
+      stub_status_code! 502 # bad gateway
+      expect(client.excavate).to eq nil
+
+      stub_status_code! 500 # internal server error
+      expect(client.excavate).to eq nil
+    end
   end
 
   describe 'storing' do
@@ -107,6 +120,14 @@ RSpec.describe 'Resilint' do
     it 'times out after the specified number of seconds, returning nil' do
       http_timeout! 123
       expect(client_for(timeout: 123).store(bucket_id)).to eq nil
+    end
+
+    it 'returns nil if the request fails' do
+      stub_status_code! 502 # bad gateway
+      expect(client.store 'some-bucket-id').to eq nil
+
+      stub_status_code! 500 # internal server error
+      expect(client.store 'some-bucket-id').to eq nil
     end
   end
 end
