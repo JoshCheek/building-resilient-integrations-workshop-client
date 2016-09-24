@@ -1,0 +1,20 @@
+{
+  "name": "resilint",
+  "version": "0.0.1",
+  "description": "Solution to Dave's resilient integration workshop",
+  "main": "src/resilint.js",
+  "scripts": {
+    "test": "mocha",
+    "test_progression": "mocha --watch --bail"
+  },
+  "keywords": [],
+  "author": "Josh Cheek",
+  "license": "WTFPL",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "chai": "3.5.0",
+    "mocha": "2.4.5"
+  }
+}
+
