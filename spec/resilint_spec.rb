@@ -29,7 +29,8 @@ RSpec.describe 'Resilint' do
   describe 'user_id' do
     let(:user_name)        { 'JoshCheek' }
     let(:returned_user_id) { 'returned-user-id' }
-    before do
+
+    def stub_registration!
       stub_request(:post, "#{base_url}/v1/register?userName=#{user_name}")
         .to_return(status: 200, body: "{\"user\":\"#{returned_user_id}\",\"name\":\"#{user_name}\"}")
     end
@@ -40,11 +41,13 @@ RSpec.describe 'Resilint' do
     end
 
     it 'registers a user, based off the user_name, if no id was provided' do
+      stub_registration!
       r = client_for(user_id: nil, user_name: user_name)
       expect(r.user_id).to eq returned_user_id
     end
 
     it 'calls the post_registration hook after registering' do
+      stub_registration!
       id = nil
       client_for(user_id: nil, user_name: user_name, post_registration: lambda { |registered_id|
         id = registered_id
