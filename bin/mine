@@ -31,12 +31,21 @@ end
 
 loop do
   attempt "Excavating"
-  if bucket_id = resilint.excavate
-    success "Found gold at #{bucket_id}"
-    attempt "Storing gold"
-    error   "Failed to store, trying again" until resilint.store(bucket_id)
-    success 'Stored gold'
+  if found = resilint.excavate
+    success "Found gold at #{found}"
   else
     error "Failed to excavate, trying again"
+    next
   end
+
+  if found[:value] < 2
+    error "Not going to store, value of #{found[:value]} is too low"
+    next
+  end
+
+  attempt "Storing gold"
+  until resilint.store found.fetch(:bucket_id)
+    error "Failed to store, trying again"
+  end
+  success 'Stored gold'
 end

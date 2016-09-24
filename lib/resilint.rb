@@ -20,8 +20,19 @@ class Resilint
   end
 
   def excavate
-    # { bucketId: "499728b5-c311", gold: {units: 4} }
-    request("excavate").fetch('bucketId')
+    body   = request("excavate")
+    result = {bucket_id: body.fetch('bucketId')}
+    if units = body['gold']
+      result[:type]  = :gold
+    elsif units = body['dirt']
+      result[:type]  = :dirt
+    else
+      raise "wat: #{body.inspect}"
+    end
+    result[:units] = units['units']
+    result[:value] = result[:units]
+    result[:value] = 0 if result[:type] == :dirt
+    result
   rescue RequestFailed
   end
 

@@ -20,9 +20,9 @@ RSpec.describe 'Resilint' do
       .to_return(status: 200, body: "{\"user\":\"#{returned_user_id}\",\"name\":\"#{user_name}\"}")
   end
 
-  def stub_excavation!(bucket_id)
+  def stub_excavation!(bucket_id, type, units)
     stub_request(:post, "#{base_url}/v1/excavate")
-      .to_return(status: 200, body: "{\"bucketId\":\"#{bucket_id}\",\"gold\":{\"units\":4}}")
+      .to_return(status: 200, body: "{\"bucketId\":\"#{bucket_id}\",\"#{type}\":{\"units\":#{units}}}")
   end
 
   def stub_storing!(bucket_id, body)
@@ -84,9 +84,15 @@ RSpec.describe 'Resilint' do
   describe 'excavate (dig for gold)' do
     let(:returned_bucket_id) { 'test-bucket-id' }
 
-    it 'posts to the excavate endpoint and returns the bucket id' do
-      stub_excavation! returned_bucket_id
-      expect(client.excavate).to eq returned_bucket_id
+    it 'posts to the excavate endpoint and returns the bucket id, type, units, and normalized vlaue' do
+      stub_excavation! returned_bucket_id, :gold, 33
+      expect(client.excavate).to eq bucket_id: returned_bucket_id, type: :gold, units: 33, value: 33
+
+      stub_excavation! returned_bucket_id, :gold, 0
+      expect(client.excavate).to eq bucket_id: returned_bucket_id, type: :gold, units: 0, value: 0
+
+      stub_excavation! returned_bucket_id, :dirt, 3
+      expect(client.excavate).to eq bucket_id: returned_bucket_id, type: :dirt, units: 3, value: 0
     end
 
     it 'times out after the specified number of seconds, returning nil' do
