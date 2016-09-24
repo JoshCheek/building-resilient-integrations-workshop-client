@@ -19,18 +19,18 @@ resilint = Resilint.registered(
 )
 
 
-def self.print_coloured(colour, msgs)
+def self.print_coloured(colour, *msgs)
   coloured_msgs = msgs.map { |msg| "#{colour}#{msg}" }
   puts coloured_msgs.join
 end
 def self.attempt(*msgs)
-  print_coloured "\e[33m", msgs
+  print_coloured "\e[33m", *msgs
 end
 def self.error(*msgs)
-  print_coloured "\e[31m", msgs
+  print_coloured "\e[31m", '  ', *msgs
 end
 def self.success(*msgs)
-  print_coloured "\e[32m", msgs
+  print_coloured "\e[32m", '  ', *msgs
 end
 
 def self.pretty_inspect(primitive_obj)
@@ -43,6 +43,8 @@ def self.pretty_inspect(primitive_obj)
   case primitive_obj
   when Fixnum
     "#{num_colour}#{primitive_obj.inspect}#{no_colour}"
+  when Float
+    "#{num_colour}%0.2f#{no_colour}" % primitive_obj
   when String, Symbol
     "#{str_sym_value}#{primitive_obj.inspect}#{no_colour}"
   when Hash
@@ -59,6 +61,9 @@ def self.pretty_inspect(primitive_obj)
   end
 end
 
+
+start_time = Time.now
+stored = 0
 loop do
   attempt "Excavating"
   if found = resilint.excavate
@@ -68,7 +73,10 @@ loop do
     next
   end
 
-  if found[:value] < 2
+  # < 1 yielded 1.4 gps
+  # < 2 yielded 1.1 gps
+  # < 3 yielded 0.94 gps
+  if found[:value] < 1
     error "Not going to store, value of ", pretty_inspect(found[:value]), " is too low"
     next
   end
@@ -77,5 +85,10 @@ loop do
   until resilint.store found.fetch(:bucket_id)
     error "Failed to store, trying again"
   end
-  success 'Stored gold'
+
+  stored += found[:value]
+  seconds = Time.now - start_time
+  rate    = stored / seconds
+  stats   = { seconds: seconds, stored: stored, gold_per_sec: rate }
+  success "Stored gold #{pretty_inspect stats}"
 end
