@@ -13,6 +13,7 @@ class Resilint
 
   def self.register(base_url, user_name)
     json = RestClient.post "#{base_url}/v1/register?userName=#{user_name}", {}
+    # => "{\"user\":\"e707b38c-1d53-4be2-a4c7-dd3fc9fc77b8\",\"name\":\"JoshCheek\"}"
     body = JSON.parse(json)
     body.fetch 'user'
   end
@@ -23,5 +24,12 @@ class Resilint
     self.base_url  = opts.fetch :base_url
     self.user_id   = opts.fetch :user_id
     self.user_name = opts.fetch :user_name
+  end
+
+  def excavate
+    json = RestClient.post "#{base_url}/v1/excavate", {}
+    # => {"bucketId"=>"499728b5-c311-4c59-ac3d-132686dfa036", "gold"=>{"units"=>4}}
+    body = JSON.parse(json)
+    body.fetch 'bucketId'
   end
 end

@@ -10,6 +10,16 @@ RSpec.describe 'Resilint' do
     Resilint.registered(**options)
   end
 
+  def stub_registration!
+    stub_request(:post, "#{base_url}/v1/register?userName=#{user_name}")
+      .to_return(status: 200, body: "{\"user\":\"#{returned_user_id}\",\"name\":\"#{user_name}\"}")
+  end
+
+  def stub_excavation!
+    stub_request(:post, "#{base_url}/v1/excavate")
+      .to_return(status: 200, body: "{\"bucketId\":\"#{returned_bucket_id}\",\"gold\":{\"units\":4}}")
+  end
+
   it 'uses the provided base_url' do
     r = client_for(base_url: 'http://example.com/base-url')
     expect(r.base_url).to eq 'http://example.com/base-url'
@@ -23,11 +33,6 @@ RSpec.describe 'Resilint' do
   describe 'user_id' do
     let(:user_name)        { 'JoshCheek' }
     let(:returned_user_id) { 'returned-user-id' }
-
-    def stub_registration!
-      stub_request(:post, "#{base_url}/v1/register?userName=#{user_name}")
-        .to_return(status: 200, body: "{\"user\":\"#{returned_user_id}\",\"name\":\"#{user_name}\"}")
-    end
 
     it 'uses the provided user_id' do
       r = client_for(user_id: 'abc123')
@@ -51,7 +56,15 @@ RSpec.describe 'Resilint' do
   end
 
 
-  describe 'dig for gold' do
+  describe 'excavate (dig for gold)' do
+    let(:returned_bucket_id) { 'test-bucket-id' }
+    let(:client)             { client_for({}) }
+
+    it 'hits the excavate endpoint and returns the bucket id' do
+      stub_excavation!
+      expect(client.excavate).to eq returned_bucket_id
+    end
+
     # => {"bucketId"=>"499728b5-c311-4c59-ac3d-132686dfa036", "gold"=>{"units"=>4}}
     # [5] pry(main)> JSON.parse(RestClient.post 'http://resilient-integration-workshop.herokuapp.com/v1/excavate', {})
   end

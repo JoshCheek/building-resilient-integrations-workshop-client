@@ -16,3 +16,5 @@ resilint = Resilint.registered(
   user_name:         'JoshCheek',
   user_id:           user_id,
 )
+
+p resilint.excavate
