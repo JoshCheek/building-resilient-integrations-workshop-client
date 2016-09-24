@@ -53,6 +53,7 @@ describe('Resilint', function() {
 
       // stub response
       let response = new PassThrough()
+      response.statusCode = 200
       response.write(JSON.stringify({user: expectedUserId, name: userName}))
       response.end()
 
@@ -229,7 +230,7 @@ describe('Resilint', function() {
           },
           ensure:  function() {
             assert.equal(true, failureCalled)
-            // done()
+            done()
           },
         })
       })
