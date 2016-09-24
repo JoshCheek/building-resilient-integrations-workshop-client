@@ -1,9 +1,20 @@
 'use strict'
 
-const assert   = require('chai').assert;
-const Resilint = require('../src/resilint.js')
+const assert      = require('chai').assert
+const sinon       = require('sinon')
+const PassThrough = require('stream').PassThrough
+const https       = require('https')
+const Resilint    = require('../src/resilint.js')
+
 
 describe('Resilint', function() {
+	afterEach(function() {
+		if(https.request.restore) {
+      https.request.restore()
+    }
+	})
+
+
   function clientFor(opts) {
     const mergedOpts = {
       baseUrl:          'https://example.com/test-base-url',
@@ -32,8 +43,49 @@ describe('Resilint', function() {
   })
 
   describe('registration', function() {
-    it('registers the userName and invokes the callback when no userId was provided')
-    it('does not register the userName when a userId is provided')
+    it('registers the userName and invokes the callback when no userId was provided', function(done) {
+      let expected = 'registered-user-id'
+      let userName = 'mah user'
+
+      // stub response
+      let response = new PassThrough()
+      response.write(JSON.stringify({user: expected, name: userName}))
+      response.end()
+
+      // stub request
+      let request  = sinon.stub(https, 'request')
+      request.callsArgWith(1, response).returns(new PassThrough())
+
+      // client makes the request
+      const client = clientFor({
+        userId:           null,
+        userName:         userName,
+        postRegistration: function(userId) {
+          assert.equal(expected, userId)
+          done()
+        },
+      })
+    })
+
+    it('does not register the userName when a userId is provided', function() {
+      // stub response
+      let response = new PassThrough()
+      response.write(JSON.stringify({user: 'id-that-is-not-requested', name: 'someone else'}))
+      response.end()
+
+      // stub request
+      let request  = sinon.stub(https, 'request')
+      request.callsArgWith(1, response).returns(new PassThrough())
+
+      // client makes the request
+      const client = clientFor({
+        userId:           'existing-user-id',
+        userName:         'mah user',
+        postRegistration: function(userId) {
+          throw("Should not have been called!")
+        },
+      })
+    })
   })
 
   describe('excavate (dig for gold)', function() {
