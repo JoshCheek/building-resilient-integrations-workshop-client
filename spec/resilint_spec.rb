@@ -1,10 +1,6 @@
 require 'resilint'
 require 'webmock/rspec'
 
-# body = RestClient.post 'http://resilient-integration-workshop.herokuapp.com/v1/register?userName=JoshCheek', {}
-# => "{\"user\":\"e707b38c-1d53-4be2-a4c7-dd3fc9fc77b8\",\"name\":\"JoshCheek\"}"
-# JSON.parse body
-
 RSpec.describe 'Resilint' do
   let(:base_url) { 'http://localhost:1234/test-base-url' }
   def client_for(**options)
@@ -14,8 +10,6 @@ RSpec.describe 'Resilint' do
     Resilint.registered(**options)
   end
 
-  # do I need this?
-  # WebMock.enable!
   it 'uses the provided base_url' do
     r = client_for(base_url: 'http://example.com/base-url')
     expect(r.base_url).to eq 'http://example.com/base-url'
@@ -54,5 +48,11 @@ RSpec.describe 'Resilint' do
       })
       expect(id).to eq returned_user_id
     end
+  end
+
+
+  describe 'dig for gold' do
+    # => {"bucketId"=>"499728b5-c311-4c59-ac3d-132686dfa036", "gold"=>{"units"=>4}}
+    # [5] pry(main)> JSON.parse(RestClient.post 'http://resilient-integration-workshop.herokuapp.com/v1/excavate', {})
   end
 end
