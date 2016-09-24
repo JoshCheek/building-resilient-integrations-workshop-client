@@ -44,24 +44,29 @@ describe('Resilint', function() {
 
   describe('registration', function() {
     it('registers the userName and invokes the callback when no userId was provided', function(done) {
-      let expected = 'registered-user-id'
-      let userName = 'mah user'
+      let expectedUserId = 'registered-user-id'
+      let userName = 'mah-user'
+      let baseUrl  = 'https://custom-base-url'
 
       // stub response
       let response = new PassThrough()
-      response.write(JSON.stringify({user: expected, name: userName}))
+      response.write(JSON.stringify({user: expectedUserId, name: userName}))
       response.end()
 
       // stub request
       let request  = sinon.stub(https, 'request')
       request.callsArgWith(1, response).returns(new PassThrough())
 
-      // client makes the request
       const client = clientFor({
         userId:           null,
         userName:         userName,
+        baseUrl:          baseUrl,
         postRegistration: function(userId) {
-          assert.equal(expected, userId)
+          const options = request.getCall(0).args[0]
+          assert.equal('POST',                           options.method)
+          assert.equal(baseUrl,                          options.hostname)
+          assert.equal("/v1/register?userName=mah-user", options.path)
+          assert.equal(expectedUserId, userId)
           done()
         },
       })
