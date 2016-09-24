@@ -18,16 +18,21 @@ class Resilint
     body.fetch 'user'
   end
 
-  attr_accessor :base_url, :user_id, :user_name
+  attr_accessor :base_url, :user_id, :user_name, :timeout
 
   def initialize(opts)
     self.base_url  = opts.fetch :base_url
     self.user_id   = opts.fetch :user_id
     self.user_name = opts.fetch :user_name
+    self.timeout   = opts.fetch :timeout
   end
 
   def excavate
-    json = RestClient.post "#{base_url}/v1/excavate", {}
+    json = RestClient::Request.execute(
+      method:  :post,
+      url:     "#{base_url}/v1/excavate",
+      timeout: timeout,
+    )
     # => {"bucketId"=>"499728b5-c311-4c59-ac3d-132686dfa036", "gold"=>{"units"=>4}}
     body = JSON.parse(json)
     body.fetch 'bucketId'

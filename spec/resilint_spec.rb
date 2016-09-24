@@ -2,14 +2,16 @@ require 'resilint'
 require 'webmock/rspec'
 
 RSpec.describe 'Resilint' do
-  let(:base_url)  { 'http://localhost:1234/test-base-url' }
-  let(:user_id)   { 'test-user-id' }
-  let(:client)    { client_for({}) }
+  let(:base_url)        { 'http://localhost:1234/test-base-url' }
+  let(:user_id)         { 'test-user-id' }
+  let(:client)          { client_for({}) }
+  let(:default_timeout) { 10 }
 
   def client_for(**options)
     options.key?(:base_url)  or options[:base_url]  = base_url
     options.key?(:user_name) or options[:user_name] = 'test-username'
     options.key?(:user_id)   or options[:user_id]   = user_id
+    options.key?(:timeout)   or options[:timeout]   = default_timeout
     Resilint.registered(**options)
   end
 
@@ -70,6 +72,16 @@ RSpec.describe 'Resilint' do
     it 'posts to the excavate endpoint and returns the bucket id' do
       stub_excavation! returned_bucket_id
       expect(client.excavate).to eq returned_bucket_id
+    end
+
+    it 'times out after n seconds, returning nil' do
+      stub_excavation! returned_bucket_id
+      expect(RestClient::Request).to receive(:execute) { |args|
+        expect(args.fetch :timeout).to eq 123
+        raise RestClient::Exceptions::ReadTimeout,
+              "Timed out reading data from server"
+      }
+      expect(client_for(timeout: 123).excavate).to eq nil
     end
   end
 
