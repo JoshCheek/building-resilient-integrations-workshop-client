@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH.unshift File.expand_path('../lib', __dir__)
+require 'resilint'
+
+data_file = "./data"
+user_id   = File.read(data) if File.exist? data_file
+
+post_registration = lambda do |user_id|
+  File.write data_file, user_id
+end
+
+resilint = Resilint.registered(
+  base_url:          'https://resilient-integration-workshop.herokuapp.com',
+  post_registration: post_registration,
+  user_name:         'JoshCheek',
+  user_id:           user_id,
+)

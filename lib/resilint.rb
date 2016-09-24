@@ -1,4 +1,5 @@
 require 'rest-client'
+require 'json'
 
 class Resilint
   def self.registered(opts)
