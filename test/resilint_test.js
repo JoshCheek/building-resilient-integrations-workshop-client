@@ -98,34 +98,18 @@ describe('Resilint', function() {
 
   describe('excavate (dig for gold)', function() {
     it('posts to the excavate endpoint', function(done) {
-      const expectedBucketId = 'expected-bucket-id'
-      const expectedType     = 'gold'
-      const expectedUnits    = 3
-      const expectedValue    = 3
-
       const response = new PassThrough()
-      response.write(JSON.stringify({
-        bucketId: expectedBucketId,
-        [expectedType]: {units: expectedUnits}
-      }))
+      response.statusCode = 200
+      response.write(JSON.stringify({bucketId: 'id', gold: {units: 1}}))
       response.end()
 
-      const request  = sinon.stub(https, 'request')
+      const request = sinon.stub(https, 'request')
       request.callsArgWith(1, response).returns(new PassThrough())
 
-      let successArgs = []
-
       clientFor({baseUrl: 'custom-base-url'}).excavate({
-        success: function(bucketId, type, units, value) {
-          successArgs = [bucketId, type, units, value]
-        },
-        failure: function(bucketId, type, units, value) {
-          throw("Should not have failed!")
-        },
-        ensure: function(bucketId, type, units, value) {
-          const expectedArgs = [expectedBucketId, expectedType, expectedUnits, expectedValue]
-          assert.deepEqual(successArgs, expectedArgs)
-          assert.deepEqual([bucketId, type, units, value], expectedArgs)
+        success: function(bucketId, type, units, value) {},
+        failure: function(err) {},
+        ensure:  function() {
           const options = request.getCall(0).args[0]
           assert.equal('POST',            options.method)
           assert.equal('custom-base-url', options.hostname)
@@ -135,10 +119,76 @@ describe('Resilint', function() {
       })
     })
 
-    it('times out after the specified number of seconds, invoking the failure and ensure callbacks')
-    it('invokes the success callback after a successful excavation, with the bucket id, type, units, and normalized vlaue')
-    it('invokes the failure callback after a failed excavation')
-    it('invokes the ensure callabck regardless of success or failure')
+    describe('after a successful invocation', function() {
+      it('invokes the success cb with the bucket id, type, units, and normalized value, and invokes the ensure callback', function(done) {
+        const expectedBucketId = 'expected-bucket-id'
+        const expectedType     = 'gold'
+        const expectedUnits    = 3
+        const expectedValue    = 3
+
+        const response = new PassThrough()
+        response.statusCode = 200
+        response.write(JSON.stringify({
+          bucketId: expectedBucketId,
+          [expectedType]: {units: expectedUnits}
+        }))
+        response.end()
+
+        const request = sinon.stub(https, 'request')
+        request.callsArgWith(1, response).returns(new PassThrough())
+
+        let successInvoked = false
+        client().excavate({
+          success: function(bucketId, type, units, value) {
+            successInvoked = true
+            assert.deepEqual(
+              [bucketId, type, units, value],
+              [expectedBucketId, expectedType, expectedUnits, expectedValue]
+            )
+          },
+          failure: function(err) { throw("Should not have failed!") },
+          ensure:  function() {
+            assert.equal(true, successInvoked)
+            done()
+          },
+        })
+      })
+    })
+
+    describe('after a failed invocation, it invokes the failure and ensure callbacks', function() {
+      specify('when failed from a status code', function(done) {
+        const response = new PassThrough()
+        response.statusCode = 404
+        response.statusMessage = 'Not found'
+        response.end()
+
+        sinon.stub(https, 'request').callsArgWith(1, response).returns(new PassThrough())
+
+        let failureCalled = false
+        client().excavate({
+          success: function()    { throw("Should not have failed!") },
+          failure: function(err) {
+            failureCalled = true
+            assert.equal('Not found', err.message)
+          },
+          ensure:  function() {
+            assert.equal(true, failureCalled)
+            done()
+          },
+        })
+      })
+
+      // failed due to some other reason gets handed to the errorCb
+      specify('when failed from a stream error')
+        // request.on = function(type, cb) {
+        //   if(type === 'error')
+        //     cb(404, {}, 'errz')
+        // }
+
+      // timeout calls the timeoutCb
+      specify('when failed from a timeout')
+
+    })
   })
 
   describe('storing', function() {

@@ -37,33 +37,41 @@ function Resilint(options) {
         'Content-Length': '0'
       },
     }
-    const requestCb = function(res) {
-      if(res.statusCode != 200) { } // maybe throw or smth?
-      let body = ""
-      let error = null
-      res.setEncoding('utf8')
-      res.on('data', (chunk) => body += chunk)
-      res.on('error', (err) => error = err)
-      res.on('end', () => {
-        const parsed   = JSON.parse(body)
-        const bucketId = parsed.bucketId
-        const type     = "gold" in parsed ? "gold" : "dirt"
-        const units    = parsed[type].units
-        const value    = units // FIXME: should be zero for dirt
-        // FIXME: if error
-        success(bucketId, type, units, value)
-        ensure(bucketId, type, units, value)
-      })
-    }
-
     const errorCb = function(err) {
-      console.log(`problem with request: ${err.message}`)
+      failure(err)
+      ensure()
     }
     const timeoutCb = function() {
       console.log(`timeout`)
     }
 
+    const requestCb = function(res) {
+      if(res.statusCode != 200) {
+        errorCb(new Error(res.statusMessage))
+        return
+      }
+      let body = ""
+      let error = null
+      res.setEncoding('utf8')
+      res.on('data', (chunk) => body += chunk)
+      res.on('error', (err) => {
+        error = err
+        errorCb(err)
+      })
+      res.on('end', () => {
+        if(error) return
+        const parsed   = JSON.parse(body)
+        const bucketId = parsed.bucketId
+        const type     = "gold" in parsed ? "gold" : "dirt"
+        const units    = parsed[type].units
+        const value    = units // FIXME: should be zero for dirt
+        success(bucketId, type, units, value)
+        ensure()
+      })
+    }
+
     const req = https.request(requestOptions, requestCb)
+    // console.dir(req)
     req.on('error', errorCb)
     // req.setTimeout(1000, timeoutCb)
     req.end()
