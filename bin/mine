@@ -18,13 +18,25 @@ resilint = Resilint.registered(
   timeout:           1,
 )
 
+
+def self.attempt(msg)
+  puts "\e[33m#{msg}\e[0m"
+end
+def self.error(msg)
+  puts "  \e[31m#{msg}\e[0m"
+end
+def self.success(msg)
+  puts "  \e[32m#{msg}\e[0m"
+end
+
 loop do
-  puts "Excavating"
+  attempt "Excavating"
   if bucket_id = resilint.excavate
-    puts "Found gold at #{bucket_id}"
-    puts "Failed to store gold, trying again" until resilint.store(bucket_id)
-    puts 'Stored gold'
+    success "Found gold at #{bucket_id}"
+    attempt "Storing gold"
+    error   "Failed to store, trying again" until resilint.store(bucket_id)
+    success 'Stored gold'
   else
-    puts "Failed to excavate gold, trying again"
+    error "Failed to excavate, trying again"
   end
 end
