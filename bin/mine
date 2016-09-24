@@ -17,4 +17,10 @@ resilint = Resilint.registered(
   user_id:           user_id,
 )
 
-p resilint.excavate
+loop do
+  puts "mining"
+  bucket_id = resilint.excavate
+  puts "found gold at #{bucket_id}"
+  resilint.store(bucket_id)
+  puts 'stored gold'
+end
