@@ -31,8 +31,7 @@ function Resilint(options) {
   function excavate({success, failure, ensure}) {
     request('/v1/excavate', successCb, errorCb)
     function successCb(body) {
-      const parsed = JSON.parse(body)
-      success(normalizeExcavation(parsed))
+      success(normalizeExcavation(JSON.parse(body)))
       ensure()
     }
     function errorCb(error) {
@@ -43,11 +42,13 @@ function Resilint(options) {
 
   function normalizeExcavation(parsed) {
     const bucketId = parsed.bucketId
-    const type     = "gold" in parsed ? "gold" : "dirt"
-    const units    = parsed[type].units
-    let   value    = 0
-    if(type === 'gold') value = units
-    return {bucketId, type, units, value}
+    if('gold' in parsed) {
+      const units = parsed['gold'].units
+      return {bucketId, units, type: 'gold', value: units}
+    } else {
+      const units = parsed['dirt'].units
+      return {bucketId, units, type: 'dirt', value: 0}
+    }
   }
 
   function store(bucketId, units, {success, failure, ensure}) {
@@ -65,9 +66,7 @@ function Resilint(options) {
   function requestUserId(userIdCb) {
     request(`/v1/register?userName=${resilint.userName}`, successCb, errorCb)
     function successCb(body) {
-      const json   = JSON.parse(body)
-      const userId = json.user
-      userIdCb(userId)
+      userIdCb(JSON.parse(body).user)
     }
     function errorCb(err) {
       throw(err)
@@ -82,16 +81,12 @@ function Resilint(options) {
       hostname: resilint.baseUrl,
       method:   'POST',
       path:     path,
-      headers:  {
-        'Content-Type':   'application/x-www-form-urlencoded',
-        'Content-Length': '0'
-      },
+      headers:  {'Content-Length': '0', 'Content-Type': 'application/x-www-form-urlencoded'},
     }
 
     const errorCb = function(e) {
       if(error) return
-      error = e
-      onError(e)
+      onError(error = e)
     }
 
     // Uhm, where does this go?
@@ -107,9 +102,9 @@ function Resilint(options) {
       }
       let body = ""
       response.setEncoding('utf8')
-      response.on('data', (chunk) => body += chunk)
+      response.on('data',  (chunk) => body += chunk)
       response.on('error', errorCb)
-      response.on('end', () => error || onSuccess(body))
+      response.on('end',   () => error || onSuccess(body))
     }
 
     const request = https.request(requestOptions, requestCb)
