@@ -2,7 +2,7 @@
 
 const Resilint           = require('../src/resilint')
 const fs                 = require('fs')
-const dataFile           = "./data2"
+const dataFile           = "./data.js"
 const concurrentRequests = 30
 let   userId             = null
 
