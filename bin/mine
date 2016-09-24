@@ -19,13 +19,12 @@ resilint = Resilint.registered(
 )
 
 loop do
-  puts "mining"
-  bucket_id = resilint.excavate
-  if bucket_id
-    puts "found gold at #{bucket_id}"
-    resilint.store(bucket_id)
-    puts 'stored gold'
+  puts "Excavating"
+  if bucket_id = resilint.excavate
+    puts "Found gold at #{bucket_id}"
+    puts "Failed to store gold, trying again" until resilint.store(bucket_id)
+    puts 'Stored gold'
   else
-    puts "Miners got lost (a cave in, maybe?) effit, send more in"
+    puts "Failed to excavate gold, trying again"
   end
 end

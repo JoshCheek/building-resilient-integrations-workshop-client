@@ -25,9 +25,17 @@ RSpec.describe 'Resilint' do
       .to_return(status: 200, body: "{\"bucketId\":\"#{bucket_id}\",\"gold\":{\"units\":4}}")
   end
 
-  def stub_storing!(bucket_id)
+  def stub_storing!(bucket_id, body)
     stub_request(:post, "#{base_url}/v1/store?userId=#{user_id}&bucketId=#{bucket_id}")
-      .to_return(status: 200, body: "true")
+      .to_return(status: 200, body: body)
+  end
+
+  def http_timeout!(seconds)
+    expect(RestClient::Request).to receive(:execute) { |args|
+      expect(args.fetch :timeout).to eq seconds
+      raise RestClient::Exceptions::ReadTimeout,
+            "Timed out reading data from server"
+    }
   end
 
   it 'uses the provided base_url' do
@@ -74,13 +82,8 @@ RSpec.describe 'Resilint' do
       expect(client.excavate).to eq returned_bucket_id
     end
 
-    it 'times out after n seconds, returning nil' do
-      stub_excavation! returned_bucket_id
-      expect(RestClient::Request).to receive(:execute) { |args|
-        expect(args.fetch :timeout).to eq 123
-        raise RestClient::Exceptions::ReadTimeout,
-              "Timed out reading data from server"
-      }
+    it 'times out after the specified number of seconds, returning nil' do
+      http_timeout! 123
       expect(client_for(timeout: 123).excavate).to eq nil
     end
   end
@@ -89,8 +92,18 @@ RSpec.describe 'Resilint' do
     let(:bucket_id) { "buckets-of-fun" }
 
     it 'posts to the store endpoint and returns true if the endpoint indicates it was stored' do
-      stub_storing! bucket_id
+      stub_storing! bucket_id, 'true'
       expect(client.store bucket_id).to eq true
+    end
+
+    it 'explodes if the body did not return true' do
+      stub_storing! bucket_id, 'not the string "true"'
+      expect { client.store bucket_id }.to raise_error NotImplementedError, /not the string/
+    end
+
+    it 'times out after the specified number of seconds, returning nil' do
+      http_timeout! 123
+      expect(client_for(timeout: 123).store(bucket_id)).to eq nil
     end
   end
 end

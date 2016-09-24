@@ -27,7 +27,8 @@ class Resilint
 
   def store(bucket_id)
     body = request 'store', parse: false, params: {userId: user_id, bucketId: bucket_id}
-    true # body == 'true' or raise(body)
+    body == 'true' or raise NotImplementedError, "Body: #{body.to_s.inspect}"
+  rescue Timeout
   end
 
   private
